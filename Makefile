@@ -4,11 +4,14 @@
 
 # Variables
 BINARY_NAME=mcp-milvus
+REGISTRY?=ghcr.io/tailabs/mcp-milvus
+PLATFORMS?=linux/amd64,linux/arm64
 BUILD_DIR=build
 DIST_DIR=dist
 GO_VERSION=$(shell go version | cut -d ' ' -f 3)
 GIT_COMMIT=$(shell git rev-parse --short HEAD)
 VERSION=$(shell git describe --tags --always --dirty)
+RELEASE_VERSION=$(shell git describe --tags --always)
 LDFLAGS=-ldflags "-s -w -X main.version=$(VERSION) -X main.commit=$(GIT_COMMIT)"
 
 # Default target
@@ -63,8 +66,12 @@ build-all: ## Build for all platforms
 # Docker
 docker: ## Build Docker image
 	@echo "Building Docker image..."
-	@docker build -t $(BINARY_NAME):latest .
-	@docker build -t $(BINARY_NAME):$(VERSION) .
+	@docker build -t $(REGISTRY):latest .
+	@docker build -t $(REGISTRY):$(VERSION) .
+
+docker-release-push:
+	@echo "Building and push release docker image: $(REGISTRY):$(RELEASE_VERSION)"
+	@docker buildx build --platform $(PLATFORMS) -t $(REGISTRY):$(RELEASE_VERSION) . --push
 
 docker-run: docker ## Build and run Docker container
 	@echo "Running Docker container..."
